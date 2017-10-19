@@ -13,11 +13,14 @@ import (
 	"time"
 )
 
-var logFile *os.File
+var (
+//logFile *os.File
+)
 
 func main() {
+	//log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+
 	printWelcome()
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	args := os.Args
 	argc := len(os.Args)
@@ -28,15 +31,19 @@ func main() {
 
 	//TODO:support UDP protocol
 
-	var logPath string
-	if args[4] == "-log" {
-		logPath = args[5]
-	}
-	var logFileError error
-	logFile, logFileError = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE, 0666)
-	if logFileError != nil {
-		log.Fatalln("[x]", "log file open error.", logFileError.Error())
-	}
+	/*var logFileError error
+	if argc > 5 && args[4] == "-log" {
+		logPath := args[5] + "/" + time.Now().Format("2006_01_02_15_04_05") // "2006-01-02 15:04:05"
+		logPath += args[1] + "-" + strings.Replace(args[2], ":", "_", -1) + "-" + args[3] + ".log"
+		logPath = strings.Replace(logPath, `\`, "/", -1)
+		logPath = strings.Replace(logPath, "//", "/", -1)
+		logFile, logFileError = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE, 0666)
+		if logFileError != nil {
+			log.Fatalln("[x]", "log file path error.", logFileError.Error())
+		}
+		log.Println("[√]", "open test log file success. path:", logPath)
+	}*/
+
 	switch args[1] {
 	case "-listen":
 		if argc < 3 {
@@ -44,7 +51,7 @@ func main() {
 		}
 		port1 := checkPort(args[2])
 		port2 := checkPort(args[3])
-		log.Println("start to listen port:", port1, "and port:", port2)
+		log.Println("[√]", "start to listen port:", port1, "and port:", port2)
 		port2port(port1, port2)
 		break
 	case "-tran":
@@ -98,7 +105,8 @@ func printHelp() {
 	fmt.Println(`       "-tran port1 ip:port2" example: "ptt -tran 1997 192.168.1.2:3389" `)
 	fmt.Println(`       "-slave ip1:port1 ip2:port2" example: "ptt -slave 127.0.0.1:3389 8.8.8.8:1997" `)
 	fmt.Println(`============================================================`)
-	fmt.Println(`optional argument: "-log filepath" `)
+	fmt.Println(`optional argument: "-log logpath" . example: "ptt -listen 1997 2017 -log d:/ptt" `)
+	fmt.Println(`log filename format: Y_m_d_H_i_s-agrs1-args2-args3.log`)
 	fmt.Println(`============================================================`)
 	fmt.Println(`if you want more help, please read "README.md". `)
 }
@@ -161,11 +169,11 @@ func port2host(allowPort string, targetAddress string) {
 func host2host(localAddress string, targetAddress string) {
 	target, err := net.Dial("tcp", targetAddress)
 	if err != nil {
-		log.Fatalln("connect target address [" + localAddress + "] faild.")
+		log.Fatalln("[x]", "connect target address ["+localAddress+"] faild.")
 	}
 	local, err := net.Dial("tcp", localAddress)
 	if err != nil {
-		log.Fatalln("connect user's host [" + localAddress + "] faild.")
+		log.Fatalln("[x]", "connect user's host ["+localAddress+"] faild.")
 	}
 	log.Println("[→]", "connect target address ["+localAddress+"] and user's host ["+localAddress+"] success.")
 	forward(target, local)
@@ -174,7 +182,7 @@ func host2host(localAddress string, targetAddress string) {
 func start_server(address string) net.Listener {
 	server, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Fatalln("listen address [" + address + "] faild.")
+		log.Fatalln("[x]", "listen address ["+address+"] faild.")
 	}
 	log.Println("[√]", "start listen at address:["+address+"]")
 	return server
@@ -214,14 +222,36 @@ func forward(conn1 net.Conn, conn2 net.Conn) {
 
 func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	//TODO:log, record the data from conn1 and conn2.
-	w := writeLog(conn1, "C:/log1.txt")
-	io.Copy(w, conn2)
+	logFile := openLog(conn1.LocalAddr().String(), conn1.RemoteAddr().String(), conn2.LocalAddr().String(), conn2.RemoteAddr().String())
+	if logFile != nil {
+		w := io.MultiWriter(conn1, logFile)
+		io.Copy(w, conn2)
+	} else {
+		io.Copy(conn1, conn2)
+	}
 	conn1.Close()
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
 	wg.Done()
 }
-
-func writeLog(conn net.Conn, file string) io.Writer {
-	w := io.MultiWriter(conn, logFile)
-	return w
+func openLog(address1, address2, address3, address4 string) *os.File {
+	args := os.Args
+	argc := len(os.Args)
+	var logFileError error
+	var logFile *os.File
+	if argc > 5 && args[4] == "-log" {
+		address1 = strings.Replace(address1, ":", "_", -1)
+		address2 = strings.Replace(address2, ":", "_", -1)
+		address3 = strings.Replace(address3, ":", "_", -1)
+		address4 = strings.Replace(address4, ":", "_", -1)
+		timeStr := time.Now().Format("2006_01_02_15_04_05") // "2006-01-02 15:04:05"
+		logPath := args[5] + "/" + timeStr + args[1] + "-" + address1 + "_" + address2 + "-" + address3 + "_" + address4 + ".log"
+		logPath = strings.Replace(logPath, `\`, "/", -1)
+		logPath = strings.Replace(logPath, "//", "/", -1)
+		logFile, logFileError = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE, 0666)
+		if logFileError != nil {
+			log.Fatalln("[x]", "log file path error.", logFileError.Error())
+		}
+		log.Println("[√]", "open test log file success. path:", logPath)
+	}
+	return logFile
 }
