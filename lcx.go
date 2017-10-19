@@ -13,34 +13,57 @@ import (
 	"time"
 )
 
+var logFile *os.File
+
 func main() {
-	fmt.Println("Welcome to use the port transmit tool.")
-	fmt.Println("Code by cw1997 at 2017-10-19 03:59:51")
-	fmt.Println("If you have some problem when you use the tool,")
-	fmt.Println("please submit a new issue at : https://github.com/cw1997/lcx .")
-	fmt.Println()
-	// sleep one second because the fmt is not thread-safety.
-	// if not to do this, fmt.Print will print after the log.Print.
-	time.Sleep(time.Second)
+	printWelcome()
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+
 	args := os.Args
+	argc := len(os.Args)
+	if argc <= 2 {
+		printHelp()
+		os.Exit(0)
+	}
+
+	//TODO:support UDP protocol
+
+	var logPath string
+	if args[4] == "-log" {
+		logPath = args[5]
+	}
+	var logFileError error
+	logFile, logFileError = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE, 0666)
+	if logFileError != nil {
+		log.Fatalln("[x]", "log file open error.", logFileError.Error())
+	}
 	switch args[1] {
 	case "-listen":
+		if argc < 3 {
+			log.Fatalln(`-listen need two arguments, like "ptt -listen 1997 2017".`)
+		}
 		port1 := checkPort(args[2])
 		port2 := checkPort(args[3])
 		log.Println("start to listen port:", port1, "and port:", port2)
 		port2port(port1, port2)
 		break
 	case "-tran":
+		if argc < 3 {
+			log.Fatalln(`-tran need two arguments, like "ptt -tran 1997 192.168.1.2:3389".`)
+		}
 		port := checkPort(args[2])
 		var remoteAddress string
 		if checkIp(args[3]) {
 			remoteAddress = args[3]
 		}
 		split := strings.SplitN(remoteAddress, ":", 2)
-		log.Println("start to transmit address:", remoteAddress, "to address:", split[0]+":"+port)
+		log.Println("[√]", "start to transmit address:", remoteAddress, "to address:", split[0]+":"+port)
 		port2host(port, remoteAddress)
 		break
 	case "-slave":
+		if argc < 3 {
+			log.Fatalln(`-slave need two arguments, like "ptt -slave 127.0.0.1:3389 8.8.8.8:1997".`)
+		}
 		var address1, address2 string
 		checkIp(args[2])
 		if checkIp(args[2]) {
@@ -50,19 +73,43 @@ func main() {
 		if checkIp(args[3]) {
 			address2 = args[3]
 		}
-		log.Println("start to connect address:", address1, "and address:", address2)
+		log.Println("[√]", "start to connect address:", address1, "and address:", address2)
 		host2host(address1, address2)
 		break
+	default:
+		printHelp()
 	}
+}
+
+func printWelcome() {
+	fmt.Println("+----------------------------------------------------------+")
+	fmt.Println("| Welcome to use the port transmit tool. (PTT ver1.0)      |")
+	fmt.Println("| Code by cw1997 at 2017-10-19 03:59:51                    |")
+	fmt.Println("| If you have some problem when you use the tool,          |")
+	fmt.Println("| please submit issue at : https://github.com/cw1997/ptt . |")
+	fmt.Println("+----------------------------------------------------------+")
+	fmt.Println()
+	// sleep one second because the fmt is not thread-safety.
+	// if not to do this, fmt.Print will print after the log.Print.
+	time.Sleep(time.Second)
+}
+func printHelp() {
+	fmt.Println(`usage: "-listen port1 port2" example: "ptt -listen 1997 2017" `)
+	fmt.Println(`       "-tran port1 ip:port2" example: "ptt -tran 1997 192.168.1.2:3389" `)
+	fmt.Println(`       "-slave ip1:port1 ip2:port2" example: "ptt -slave 127.0.0.1:3389 8.8.8.8:1997" `)
+	fmt.Println(`============================================================`)
+	fmt.Println(`optional argument: "-log filepath" `)
+	fmt.Println(`============================================================`)
+	fmt.Println(`if you want more help, please read "README.md". `)
 }
 
 func checkPort(port string) string {
 	PortNum, err := strconv.Atoi(port)
 	if err != nil {
-		log.Fatalln("port should be a number")
+		log.Fatalln("[x]", "port should be a number")
 	}
 	if PortNum < 1 && PortNum > 65535 {
-		log.Fatalln("port should be a number and the range is [1,65536)")
+		log.Fatalln("[x]", "port should be a number and the range is [1,65536)")
 	}
 	return port
 }
@@ -71,7 +118,7 @@ func checkIp(address string) bool {
 	pattern := `(\d|[1-9]\d|1\d{2}|2[0-5][0-5])\.(\d|[1-9]\d|1\d{2}|2[0-5][0-5])\.(\d|[1-9]\d|1\d{2}|2[0-5][0-5])\.(\d|[1-9]\d|1\d{2}|2[0-5][0-5]):([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-5]{2}[0-3][0-5])`
 	ok, err := regexp.MatchString(pattern, address)
 	if err != nil || !ok {
-		log.Fatalln("ip address error. should be a string like [ip:port]. ")
+		log.Fatalln("[x]", "ip address error. should be a string like [ip:port]. ")
 	}
 	return ok
 }
@@ -79,7 +126,7 @@ func checkIp(address string) bool {
 func port2port(port1 string, port2 string) {
 	listen1 := start_server("127.0.0.1:" + port1)
 	listen2 := start_server("127.0.0.1:" + port2)
-	log.Println("listen port:", port1, "and", port2, "success. waiting for client...")
+	log.Println("[√]", "listen port:", port1, "and", port2, "success. waiting for client...")
 	for {
 		conn1 := accept(listen1)
 		conn2 := accept(listen2)
@@ -102,10 +149,10 @@ func port2host(allowPort string, targetAddress string) {
 			target, err := net.Dial("tcp", targetAddress)
 			if err != nil {
 				// temporarily unavailable, don't use fatal.
-				log.Println("connect target address [" + targetAddress + "] faild.")
+				log.Println("[√]", "connect target address ["+targetAddress+"] faild.")
 				return
 			}
-			log.Println("connect target address [" + targetAddress + "] success.")
+			log.Println("[→]", "connect target address ["+targetAddress+"] success.")
 			forward(target, conn)
 		}(targetAddress)
 	}
@@ -120,7 +167,7 @@ func host2host(localAddress string, targetAddress string) {
 	if err != nil {
 		log.Fatalln("connect user's host [" + localAddress + "] faild.")
 	}
-	log.Println("connect target address [" + localAddress + "] and user's host [" + localAddress + "] success.")
+	log.Println("[→]", "connect target address ["+localAddress+"] and user's host ["+localAddress+"] success.")
 	forward(target, local)
 }
 
@@ -129,7 +176,7 @@ func start_server(address string) net.Listener {
 	if err != nil {
 		log.Fatalln("listen address [" + address + "] faild.")
 	}
-	log.Println("start listen at address:[" + address + "]")
+	log.Println("[√]", "start listen at address:["+address+"]")
 	return server
 	/*defer server.Close()
 
@@ -148,10 +195,10 @@ func start_server(address string) net.Listener {
 func accept(listener net.Listener) net.Conn {
 	conn, err := listener.Accept()
 	if err != nil {
-		log.Println("accept connect ["+conn.RemoteAddr().String()+"] faild.", err.Error())
+		log.Println("[x]", "accept connect ["+conn.RemoteAddr().String()+"] faild.", err.Error())
 		return nil
 	}
-	log.Println("accept a new client. remote address:[" + conn.RemoteAddr().String() + "], local address:[" + conn.LocalAddr().String() + "]")
+	log.Println("[√]", "accept a new client. remote address:["+conn.RemoteAddr().String()+"], local address:["+conn.LocalAddr().String()+"]")
 	return conn
 }
 
@@ -167,8 +214,14 @@ func forward(conn1 net.Conn, conn2 net.Conn) {
 
 func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	//TODO:log, record the data from conn1 and conn2.
-	io.Copy(conn1, conn2)
+	w := writeLog(conn1, "C:/log1.txt")
+	io.Copy(w, conn2)
 	conn1.Close()
-	log.Println("close the connect at local:[" + conn1.LocalAddr().String() + "] and remote:[" + conn1.RemoteAddr().String() + "]")
+	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
 	wg.Done()
+}
+
+func writeLog(conn net.Conn, file string) io.Writer {
+	w := io.MultiWriter(conn, logFile)
+	return w
 }
