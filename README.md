@@ -13,9 +13,9 @@
 如果运行出现错误，请检查您所输入的参数是否有错，或者相应的端口被占用，请更换端口重试。如果未看见欢迎消息，请给编译好的可执行文件设置权限为777。如果无法写日志，请检查当前用户是否有权限在日志文件路径的读写权限。
 
 # platform
-Windows 7 7601 + go1.7.5(windows/amd64) 编译与测试通过
-Ubuntu 16.04.1 + go1.6.2(linux/amd64) 编译与测试通过
-Windows 2003 SP2 3790 + go1.9.1(windows/386) 编译与测试通过
+- Windows 7 7601 + go1.7.5(windows/amd64) 编译与测试通过
+- Ubuntu 16.04.1 + go1.6.2(linux/amd64) 编译与测试通过
+- Windows 2003 SP2 3790 + go1.9.1(windows/386) 编译与测试通过
 
 # usage
 - -listen port1 port2 

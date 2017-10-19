@@ -74,7 +74,7 @@ func main() {
 		var address1, address2 string
 		checkIp(args[2])
 		if checkIp(args[2]) {
-			address1 = args[3]
+			address1 = args[2]
 		}
 		checkIp(args[3])
 		if checkIp(args[3]) {
@@ -132,8 +132,8 @@ func checkIp(address string) bool {
 }
 
 func port2port(port1 string, port2 string) {
-	listen1 := start_server("127.0.0.1:" + port1)
-	listen2 := start_server("127.0.0.1:" + port2)
+	listen1 := start_server("0.0.0.0:" + port1)
+	listen2 := start_server("0.0.0.0:" + port2)
 	log.Println("[√]", "listen port:", port1, "and", port2, "success. waiting for client...")
 	for {
 		conn1 := accept(listen1)
@@ -166,17 +166,17 @@ func port2host(allowPort string, targetAddress string) {
 	}
 }
 
-func host2host(localAddress string, targetAddress string) {
-	target, err := net.Dial("tcp", targetAddress)
+func host2host(address1, address2 string) {
+	host1, err := net.Dial("tcp", address1)
 	if err != nil {
-		log.Fatalln("[x]", "connect target address ["+localAddress+"] faild.")
+		log.Fatalln("[x]", "connect target address ["+address1+"] faild.")
 	}
-	local, err := net.Dial("tcp", localAddress)
+	host2, err := net.Dial("tcp", address2)
 	if err != nil {
-		log.Fatalln("[x]", "connect user's host ["+localAddress+"] faild.")
+		log.Fatalln("[x]", "connect user's host ["+address2+"] faild.")
 	}
-	log.Println("[→]", "connect target address ["+localAddress+"] and user's host ["+localAddress+"] success.")
-	forward(target, local)
+	log.Println("[→]", "connect target address ["+address1+"] and user's host ["+address2+"] success.")
+	forward(host1, host2)
 }
 
 func start_server(address string) net.Listener {
