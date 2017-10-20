@@ -137,11 +137,17 @@ func port2port(port1 string, port2 string) {
 	log.Println("[√]", "listen port:", port1, "and", port2, "success. waiting for client...")
 	for {
 		conn1 := accept(listen1)
-		conn2 := accept(listen2)
-		if conn1 == nil || conn2 == nil {
+		if conn1 == nil {
 			continue
 		}
-		forward(conn1, conn2)
+		conn2 := accept(listen2)
+		if conn2 == nil {
+			conn1.Close()
+			continue
+		}
+		if conn1 != nil && conn2 != nil {
+			forward(conn1, conn2)
+		}
 	}
 }
 
@@ -167,16 +173,18 @@ func port2host(allowPort string, targetAddress string) {
 }
 
 func host2host(address1, address2 string) {
-	host1, err := net.Dial("tcp", address1)
-	if err != nil {
-		log.Fatalln("[x]", "connect target address ["+address1+"] faild.")
+	for {
+		host1, err := net.Dial("tcp", address1)
+		if err != nil {
+			log.Fatalln("[x]", "connect user's host ["+address1+"] faild.")
+		}
+		host2, err := net.Dial("tcp", address2)
+		if err != nil {
+			log.Fatalln("[x]", "connect target address ["+address2+"] faild.")
+		}
+		log.Println("[→]", "connect user's host ["+address1+"] and target address ["+address2+"] success.")
+		forward(host1, host2)
 	}
-	host2, err := net.Dial("tcp", address2)
-	if err != nil {
-		log.Fatalln("[x]", "connect user's host ["+address2+"] faild.")
-	}
-	log.Println("[→]", "connect target address ["+address1+"] and user's host ["+address2+"] success.")
-	forward(host1, host2)
 }
 
 func start_server(address string) net.Listener {
@@ -214,10 +222,20 @@ func forward(conn1 net.Conn, conn2 net.Conn) {
 	var wg sync.WaitGroup
 	// wait tow goroutines
 	wg.Add(2)
-	go connCopy(conn1, conn2, &wg)
-	go connCopy(conn2, conn1, &wg)
+	//go connCopy(conn1, conn2, &wg)
+	//go connCopy(conn2, conn1, &wg)
+	go func() {
+		defer wg.Done()
+		io.Copy(conn1, conn2)
+	}()
+	go func() {
+		defer wg.Done()
+		io.Copy(conn2, conn1)
+	}()
 	//blocking when the wg is locked
 	wg.Wait()
+	conn1.Close()
+	conn2.Close()
 }
 
 func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
@@ -229,7 +247,7 @@ func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	} else {
 		io.Copy(conn1, conn2)
 	}
-	conn1.Close()
+	conn2.Close()
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
 	wg.Done()
 }
