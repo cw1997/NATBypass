@@ -1,7 +1,7 @@
 # NATBypass (内网穿透，端口转发工具)
 一款lcx（htran）在golang下的实现
 
-通过主动连接具有公网IP的电脑打通隧道可实现内网穿透，软件实现的端口转发，透明代理。
+通过主动连接具有公网IP的电脑打通隧道可实现内网穿透，让内网主机提供的服务能够借助外网主机来访问。软件实现的端口转发，透明代理，在主机限制出站规则但未限制入站规则的特定情况下可绕过防火墙。
 
 # build
 `go build nb.go`
@@ -25,6 +25,8 @@ https://github.com/cw1997/NATBypass/releases
 - Windows 2003 SP2 3790 + go1.9.1(windows/386) 编译与测试通过
 
 # usage
+
+### 语法
 - -listen port1 port2 
 
 ### 说明
@@ -35,6 +37,7 @@ https://github.com/cw1997/NATBypass/releases
 
 ---
 
+### 语法
 - -tran port1 ip:port2 
 
 ### 说明
@@ -45,6 +48,7 @@ https://github.com/cw1997/NATBypass/releases
 
 ---
 
+### 语法
 - -slave ip1:port1 ip2:port2
 
 ### 说明
@@ -55,7 +59,8 @@ https://github.com/cw1997/NATBypass/releases
 
 ---
 
-- log filepath
+### 语法
+- log filedirpath
 
 ### 示例
 `nb -listen 1997 2017 -log D:/nb`
@@ -65,7 +70,7 @@ https://github.com/cw1997/NATBypass/releases
 `nb -slave 127.0.0.1:3389 8.8.8.8:1997 -log D:/nb`
 
 ### 说明
-`-log`为一个可选开关。如果在前面任意一个必选开关的末尾加上该开关，那么所有转发数据将会被记录到`D:/nb/Y_m_d_H_i_s-agrs1-args2-args3.log`文件中，其中`YmdHis`以及`args`均会被替换为实际执行时的时间和参数。如果有特殊需求，可根据时间顺序，以及相关参数进行合并，以得到连续的转发数据日志记录。（由于转发数据可能并非文本文件，建议使用UltraEdit等支持二进制查看的编辑器打开）
+`-log`为一个可选开关，其参数为日志文件所在目录。如果在前面任意一个必选开关的末尾加上该开关，那么所有转发数据将会被记录到`D:/nb/Y_m_d_H_i_s-agrs1-args2-args3.log`文件中，其中`YmdHis`以及`args`均会被替换为实际执行时的时间和参数。如果有特殊需求，可根据时间顺序，以及相关参数进行合并，以得到连续的转发数据日志记录。（由于转发数据可能并非文本文件，建议使用UltraEdit等支持二进制查看的编辑器打开）
 
 警告：不要使用包含空格以及各种特殊字符的文件路径，比如说`C:\Documents and Settings\Administrator\桌面\go\bin`这个文件路径就是无效文件路径，因为其包含空格。
 
