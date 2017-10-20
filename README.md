@@ -1,5 +1,7 @@
-# ptt (Port Transmit Tool)
-一款lcx在golang下的实现
+# BypassNAT (内网穿透，端口转发工具)
+一款lcx（htran）在golang下的实现
+
+通过主动连接具有公网IP的电脑打通隧道可实现内网穿透，软件实现的端口转发，透明代理。
 
 # build
 `go build ptt.go`
