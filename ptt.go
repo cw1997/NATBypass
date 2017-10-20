@@ -13,12 +13,11 @@ import (
 	"time"
 )
 
-var (
-//logFile *os.File
-)
+const timeout = 5
 
 func main() {
-	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+	//log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+	log.SetFlags(log.Ldate | log.Lmicroseconds)
 
 	printWelcome()
 
@@ -139,6 +138,8 @@ func port2port(port1 string, port2 string) {
 		conn1 := accept(listen1)
 		conn2 := accept(listen2)
 		if conn1 == nil || conn2 == nil {
+			log.Println("[x]", "accept client faild. retry in ", timeout, " seconds. ")
+			time.Sleep(timeout * time.Second)
 			continue
 		}
 		forward(conn1, conn2)
@@ -154,10 +155,14 @@ func port2host(allowPort string, targetAddress string) {
 		}
 		//println(targetAddress)
 		go func(targetAddress string) {
+			log.Println("[+]", "start connect host:["+targetAddress+"]")
 			target, err := net.Dial("tcp", targetAddress)
 			if err != nil {
 				// temporarily unavailable, don't use fatal.
-				log.Println("[x]", "connect target address ["+targetAddress+"] faild.")
+				log.Println("[x]", "connect target address ["+targetAddress+"] faild. retry in ", timeout, "seconds. ")
+				conn.Close()
+				log.Println("[←]", "close the connect at local:["+conn.LocalAddr().String()+"] and remote:["+conn.RemoteAddr().String()+"]")
+				time.Sleep(timeout * time.Second)
 				return
 			}
 			log.Println("[→]", "connect target address ["+targetAddress+"] success.")
@@ -168,21 +173,35 @@ func port2host(allowPort string, targetAddress string) {
 
 func host2host(address1, address2 string) {
 	for {
-		host1, err := net.Dial("tcp", address1)
-		if err != nil {
-			log.Fatalln("[x]", "connect target address ["+address1+"] faild.")
+		log.Println("[+]", "try to connect host:["+address1+"] and ["+address2+"]")
+		var host1, host2 net.Conn
+		var err error
+		for {
+			host1, err = net.Dial("tcp", address1)
+			if err == nil {
+				log.Println("[→]", "connect ["+address1+"] success.")
+				break
+			} else {
+				log.Println("[x]", "connect target address ["+address1+"] faild. retry in ", timeout, " seconds. ")
+				time.Sleep(timeout * time.Second)
+			}
 		}
-		log.Println("[→]", "connect ["+address1+"] success.")
-		host2, err := net.Dial("tcp", address2)
-		if err != nil {
-			log.Fatalln("[x]", "connect user's host ["+address2+"] faild.")
+		for {
+			host2, err = net.Dial("tcp", address2)
+			if err == nil {
+				log.Println("[→]", "connect ["+address2+"] success.")
+				break
+			} else {
+				log.Println("[x]", "connect target address ["+address2+"] faild. retry in ", timeout, " seconds. ")
+				time.Sleep(timeout * time.Second)
+			}
 		}
-		log.Println("[→]", "connect ["+address2+"] success.")
 		forward(host1, host2)
 	}
 }
 
 func start_server(address string) net.Listener {
+	log.Println("[+]", "try to start server on:["+address+"]")
 	server, err := net.Listen("tcp", address)
 	if err != nil {
 		log.Fatalln("[x]", "listen address ["+address+"] faild.")
@@ -214,6 +233,7 @@ func accept(listener net.Listener) net.Conn {
 }
 
 func forward(conn1 net.Conn, conn2 net.Conn) {
+	log.Printf("[+] start transmit. [%s],[%s] <-> [%s],[%s] \n", conn1.LocalAddr().String(), conn1.RemoteAddr().String(), conn2.LocalAddr().String(), conn2.RemoteAddr().String())
 	var wg sync.WaitGroup
 	// wait tow goroutines
 	wg.Add(2)
@@ -234,8 +254,8 @@ func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	}
 	conn1.Close()
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
-	conn2.Close()
-	log.Println("[←]", "close the connect at local:["+conn2.LocalAddr().String()+"] and remote:["+conn2.RemoteAddr().String()+"]")
+	//conn2.Close()
+	//log.Println("[←]", "close the connect at local:["+conn2.LocalAddr().String()+"] and remote:["+conn2.RemoteAddr().String()+"]")
 	wg.Done()
 }
 func openLog(address1, address2, address3, address4 string) *os.File {
