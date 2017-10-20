@@ -157,7 +157,7 @@ func port2host(allowPort string, targetAddress string) {
 			target, err := net.Dial("tcp", targetAddress)
 			if err != nil {
 				// temporarily unavailable, don't use fatal.
-				log.Println("[√]", "connect target address ["+targetAddress+"] faild.")
+				log.Println("[x]", "connect target address ["+targetAddress+"] faild.")
 				return
 			}
 			log.Println("[→]", "connect target address ["+targetAddress+"] success.")
@@ -232,9 +232,10 @@ func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	} else {
 		io.Copy(conn1, conn2)
 	}
-	conn2.Close()
 	conn1.Close()
 	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
+	conn2.Close()
+	log.Println("[←]", "close the connect at local:["+conn2.LocalAddr().String()+"] and remote:["+conn2.RemoteAddr().String()+"]")
 	wg.Done()
 }
 func openLog(address1, address2, address3, address4 string) *os.File {
