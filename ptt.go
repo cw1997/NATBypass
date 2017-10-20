@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -18,7 +19,7 @@ var (
 )
 
 func main() {
-	//log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Lshortfile)
 
 	printWelcome()
 
@@ -221,17 +222,9 @@ func accept(listener net.Listener) net.Conn {
 func forward(conn1 net.Conn, conn2 net.Conn) {
 	var wg sync.WaitGroup
 	// wait tow goroutines
-	wg.Add(2)
-	//go connCopy(conn1, conn2, &wg)
-	//go connCopy(conn2, conn1, &wg)
-	go func() {
-		defer wg.Done()
-		io.Copy(conn1, conn2)
-	}()
-	go func() {
-		defer wg.Done()
-		io.Copy(conn2, conn1)
-	}()
+	wg.Add(4)
+	go connCopy(conn1, conn2, &wg)
+	go connCopy(conn2, conn1, &wg)
 	//blocking when the wg is locked
 	wg.Wait()
 	conn1.Close()
@@ -240,7 +233,7 @@ func forward(conn1 net.Conn, conn2 net.Conn) {
 
 func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 	//TODO:log, record the data from conn1 and conn2.
-	logFile := openLog(conn1.LocalAddr().String(), conn1.RemoteAddr().String(), conn2.LocalAddr().String(), conn2.RemoteAddr().String())
+	/*logFile := openLog(conn1.LocalAddr().String(), conn1.RemoteAddr().String(), conn2.LocalAddr().String(), conn2.RemoteAddr().String())
 	if logFile != nil {
 		w := io.MultiWriter(conn1, logFile)
 		io.Copy(w, conn2)
@@ -248,8 +241,34 @@ func connCopy(conn1 net.Conn, conn2 net.Conn, wg *sync.WaitGroup) {
 		io.Copy(conn1, conn2)
 	}
 	conn2.Close()
-	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")
-	wg.Done()
+	log.Println("[←]", "close the connect at local:["+conn1.LocalAddr().String()+"] and remote:["+conn1.RemoteAddr().String()+"]")*/
+	c := make(chan []byte, 0)
+	go func(c chan []byte) {
+		for buf := range c {
+			n, err := conn2.Write(buf)
+			if err != nil {
+				log.Println("conn2.Close", n)
+				break
+			}
+			log.Println("conn2.Write", n)
+		}
+		wg.Done()
+	}(c)
+	go func(c chan []byte) {
+		for {
+			buf := make([]byte, 1024)
+			b := bytes.NewBuffer(buf)
+			io.Copy(b, conn1)
+			c <- buf
+			/*//n, _ := conn1.Read(buf)
+			if n != 0 {
+				c <- buf
+				log.Println("conn1.Read", n)
+			}*/
+			//log.Println("conn1.Read error", n)
+		}
+		wg.Done()
+	}(c)
 }
 func openLog(address1, address2, address3, address4 string) *os.File {
 	args := os.Args
