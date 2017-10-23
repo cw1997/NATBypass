@@ -46,7 +46,7 @@ func main() {
 	switch args[1] {
 	case "-listen":
 		if argc < 3 {
-			log.Fatalln(`-listen need two arguments, like "ptt -listen 1997 2017".`)
+			log.Fatalln(`-listen need two arguments, like "nb -listen 1997 2017".`)
 		}
 		port1 := checkPort(args[2])
 		port2 := checkPort(args[3])
@@ -55,7 +55,7 @@ func main() {
 		break
 	case "-tran":
 		if argc < 3 {
-			log.Fatalln(`-tran need two arguments, like "ptt -tran 1997 192.168.1.2:3389".`)
+			log.Fatalln(`-tran need two arguments, like "nb -tran 1997 192.168.1.2:3389".`)
 		}
 		port := checkPort(args[2])
 		var remoteAddress string
@@ -68,7 +68,7 @@ func main() {
 		break
 	case "-slave":
 		if argc < 3 {
-			log.Fatalln(`-slave need two arguments, like "ptt -slave 127.0.0.1:3389 8.8.8.8:1997".`)
+			log.Fatalln(`-slave need two arguments, like "nb -slave 127.0.0.1:3389 8.8.8.8:1997".`)
 		}
 		var address1, address2 string
 		checkIp(args[2])
