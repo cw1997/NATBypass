@@ -115,7 +115,7 @@ func checkPort(port string) string {
 	if err != nil {
 		log.Fatalln("[x]", "port should be a number")
 	}
-	if PortNum < 1 && PortNum > 65535 {
+	if PortNum < 1 || PortNum > 65535 {
 		log.Fatalln("[x]", "port should be a number and the range is [1,65536)")
 	}
 	return port
