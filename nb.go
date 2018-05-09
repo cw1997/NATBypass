@@ -122,10 +122,17 @@ func checkPort(port string) string {
 }
 
 func checkIp(address string) bool {
-	pattern := `(\d|[1-9]\d|1\d{2}|2[0-5][0-5])\.(\d|[1-9]\d|1\d{2}|2[0-5][0-5])\.(\d|[1-9]\d|1\d{2}|2[0-5][0-5])\.(\d|[1-9]\d|1\d{2}|2[0-5][0-5]):([0-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-5]{2}[0-3][0-5])`
-	ok, err := regexp.MatchString(pattern, address)
+	ipAndPort := strings.Split(address, ":")
+	if len(ipAndPort) != 2 {
+		log.Fatalln("[x]", "address error. should be a string like [ip:port]. ")
+	}
+	ip := ipAndPort[0]
+	port := ipAndPort[1]
+	checkPort(port)
+	pattern := `^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$`
+	ok, err := regexp.MatchString(pattern, ip)
 	if err != nil || !ok {
-		log.Fatalln("[x]", "ip address error. should be a string like [ip:port]. ")
+		log.Fatalln("[x]", "ip error. ")
 	}
 	return ok
 }
