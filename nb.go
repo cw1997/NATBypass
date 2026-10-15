@@ -279,7 +279,7 @@ func openLog(address1, address2, address3, address4 string) *os.File {
 		logPath := args[5] + "/" + timeStr + args[1] + "-" + address1 + "_" + address2 + "-" + address3 + "_" + address4 + ".log"
 		logPath = strings.Replace(logPath, `\`, "/", -1)
 		logPath = strings.Replace(logPath, "//", "/", -1)
-		logFile, logFileError = os.OpenFile(logPath, os.O_APPEND|os.O_CREATE, 0666)
+		logFile, logFileError = os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
 		if logFileError != nil {
 			log.Fatalln("[x]", "log file path error.", logFileError.Error())
 		}
